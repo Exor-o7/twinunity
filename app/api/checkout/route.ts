@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
 
   if (
     listing.status !== "published" ||
-    listing.intent !== "buy" ||
     listing.price_cents === null ||
     listing.quantity < 1
   ) {
@@ -55,8 +54,8 @@ export async function POST(request: NextRequest) {
     process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    success_url: `${siteUrl}/inventory/${listing.slug}?checkout=success`,
-    cancel_url: `${siteUrl}/inventory/${listing.slug}?checkout=cancelled`,
+    success_url: `${siteUrl}/listings/${listing.slug}?checkout=success`,
+    cancel_url: `${siteUrl}/listings/${listing.slug}?checkout=cancelled`,
     customer_creation: "if_required",
     metadata: {
       listing_id: listing.id

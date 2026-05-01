@@ -1,6 +1,6 @@
-# Twin Unity TCG
+# Twin Unity
 
-Twin Unity TCG is a custom marketplace for buying, selling, and trading Pokemon cards. It uses a public storefront, a protected admin dashboard, Supabase for data/auth/storage, and Stripe Checkout for online purchases.
+Twin Unity is a custom marketplace for buying, selling, and trading Pokemon cards. It uses a public storefront, a protected admin dashboard, Supabase for data/auth/storage, and Stripe Checkout for online purchases.
 
 ## Stack
 
