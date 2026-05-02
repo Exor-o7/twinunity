@@ -1,6 +1,8 @@
 import { ListingCard } from "@/components/ListingCard";
 import { getPublishedListings } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 const NEW_ARRIVAL_DAYS = 7;
 
 export default async function NewArrivalsPage() {

@@ -1,6 +1,8 @@
 import { ListingCard } from "@/components/ListingCard";
 import { getPublishedListings } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 type SearchPageProps = {
   searchParams: Promise<{ q?: string }>;
 };

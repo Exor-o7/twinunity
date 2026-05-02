@@ -1,6 +1,8 @@
 import { ListingCard } from "@/components/ListingCard";
 import { getSoldListings } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 const RECENTLY_SOLD_DAYS = 7;
 
 export default async function SoldPage() {

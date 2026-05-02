@@ -1,5 +1,7 @@
 import { ProductListingPage } from "@/components/ProductListingPage";
 
+export const dynamic = "force-dynamic";
+
 export default function GradedCardsPage() {
   return (
     <ProductListingPage

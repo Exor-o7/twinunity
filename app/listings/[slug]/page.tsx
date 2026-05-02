@@ -5,6 +5,8 @@ import { CheckoutButton } from "@/components/CheckoutButton";
 import { formatMoney } from "@/lib/format";
 import { getListingBySlug } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 type ListingDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
