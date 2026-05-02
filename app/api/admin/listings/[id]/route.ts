@@ -11,6 +11,18 @@ type ListingParams = {
   params: Promise<{ id: string }>;
 };
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object" && "message" in error) {
+    return String(error.message);
+  }
+
+  return "Unable to update listing";
+}
+
 export async function PATCH(request: NextRequest, { params }: ListingParams) {
   const admin = await requireAdmin(request);
 
@@ -37,9 +49,13 @@ export async function PATCH(request: NextRequest, { params }: ListingParams) {
     );
   }
 
-  const { id } = await params;
-  const listing = await updateListing(supabase, id, parsed.data);
-  return NextResponse.json({ listing });
+  try {
+    const { id } = await params;
+    const listing = await updateListing(supabase, id, parsed.data);
+    return NextResponse.json({ listing });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: NextRequest, { params }: ListingParams) {

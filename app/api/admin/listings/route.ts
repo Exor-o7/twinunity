@@ -7,6 +7,18 @@ import {
 } from "@/lib/supabase";
 import { listingSchema } from "@/lib/validation";
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object" && "message" in error) {
+    return String(error.message);
+  }
+
+  return "Unable to save listing";
+}
+
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin(request);
 
@@ -53,6 +65,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const listing = await createListing(supabase, parsed.data);
-  return NextResponse.json({ listing }, { status: 201 });
+  try {
+    const listing = await createListing(supabase, parsed.data);
+    return NextResponse.json({ listing }, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+  }
 }

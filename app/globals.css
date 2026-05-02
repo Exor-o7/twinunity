@@ -593,9 +593,16 @@ h2 {
 }
 
 .gallery-overlay strong,
+.gallery-overlay span,
 .gallery-overlay small {
   position: relative;
   z-index: 1;
+}
+
+.gallery-overlay span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .gallery-overlay small {
@@ -630,12 +637,16 @@ h2 {
 }
 
 .badge {
+  align-items: center;
   border: 1px solid color-mix(in oklab, var(--blue) 55%, var(--border));
   border-radius: 999px;
   color: var(--muted);
   display: inline-flex;
   font-size: 0.8rem;
   font-weight: 700;
+  justify-content: center;
+  line-height: 1;
+  min-height: 2rem;
   padding: 0.2rem 0.65rem;
   text-transform: capitalize;
 }
@@ -689,10 +700,19 @@ h2 {
 }
 
 .listing-card h3 {
-  font-size: 1.04rem;
+  font-size: 1rem;
   letter-spacing: 0.01em;
-  line-height: 1.25;
+  line-height: 1.28;
   margin: 0;
+}
+
+.listing-card-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  margin: -0.2rem 0 0;
 }
 
 .listing-card .price {
@@ -831,7 +851,8 @@ h2 {
 }
 
 .cart-item-details h2 {
-  font-size: 1.15rem;
+  font-size: 0.92rem;
+  line-height: 1.25;
   margin: 0;
 }
 
@@ -886,6 +907,43 @@ h2 {
   grid-template-columns: minmax(280px, 0.95fr) minmax(300px, 1.05fr);
   gap: 2rem;
   align-items: start;
+}
+
+.detail-grid h1 {
+  font-size: clamp(2rem, 4.6vw, 4rem);
+  line-height: 1.08;
+}
+
+.listing-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.65rem;
+  margin: 0.85rem 0 1rem;
+}
+
+.listing-detail-meta div {
+  border: 1px solid color-mix(in oklab, var(--blue) 42%, transparent);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgb(39 169 255 / 10%), rgb(103 232 59 / 6%)),
+    color-mix(in oklab, var(--surface) 82%, black);
+  padding: 0.75rem 0.85rem;
+}
+
+.listing-detail-meta dt {
+  color: var(--green);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.listing-detail-meta dd {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0.22rem 0 0;
 }
 
 .spec-list {
@@ -985,6 +1043,7 @@ h2 {
 }
 
 .table-item header {
+  align-items: flex-start;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -1006,6 +1065,31 @@ footer {
   gap: 1rem;
   flex-wrap: wrap;
   padding: 1rem 0 2rem;
+}
+
+.footer-admin-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.footer-admin-link:hover {
+  color: inherit;
+}
+
+.footer-source-link {
+  border-bottom: 1px solid color-mix(in oklab, var(--blue) 55%, transparent);
+  color: var(--muted);
+  font-style: italic;
+  font-weight: inherit;
+  text-decoration: none;
+  transition:
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.footer-source-link:hover {
+  border-color: var(--green);
+  color: var(--text);
 }
 
 @media (max-width: 1440px) {

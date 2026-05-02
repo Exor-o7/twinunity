@@ -13,6 +13,7 @@ export type Listing = {
   status: ListingStatus;
   set_name: string | null;
   card_number: string | null;
+  rarity: string | null;
   condition: string | null;
   grade: string | null;
   price_cents: number | null;

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { formatListingTitle } from "@/lib/format";
 import { createStripeClient } from "@/lib/stripe";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import type { Listing } from "@/lib/types";
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const listingTitle = formatListingTitle(listing);
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
   const session = await stripe.checkout.sessions.create({
@@ -67,9 +69,14 @@ export async function POST(request: NextRequest) {
           currency: "usd",
           unit_amount: listing.price_cents,
           product_data: {
-            name: listing.name,
+            name: listingTitle,
             description:
-              [listing.set_name, listing.card_number, listing.condition]
+              [
+                listing.set_name,
+                listing.card_number,
+                listing.rarity,
+                listing.condition
+              ]
                 .filter(Boolean)
                 .join(" | ") || undefined,
             images: listing.image_urls.slice(0, 8)

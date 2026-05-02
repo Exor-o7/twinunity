@@ -16,8 +16,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     ? listings.filter((listing) => {
         const searchableText = [
           listing.name,
-          listing.description,
-          listing.notes
+          listing.set_name,
+          listing.card_number,
+          listing.rarity,
+          listing.description
         ]
           .filter(Boolean)
           .join(" ")

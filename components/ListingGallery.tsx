@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatMoney } from "@/lib/format";
+import { formatListingMeta, formatListingTitle, formatMoney } from "@/lib/format";
 import type { Listing } from "@/lib/types";
 
 type ListingGalleryProps = {
@@ -22,6 +22,8 @@ export function ListingGallery({ listings, title = "Gallery" }: ListingGalleryPr
       <div className="gallery-grid">
         {listings.map((listing, index) => {
           const primaryImage = listing.image_urls[0];
+          const listingTitle = formatListingTitle(listing);
+          const listingMeta = formatListingMeta(listing, { includeGrade: true });
 
           return (
             <Link
@@ -31,12 +33,13 @@ export function ListingGallery({ listings, title = "Gallery" }: ListingGalleryPr
             >
               {primaryImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={primaryImage} alt={listing.name} />
+                <img src={primaryImage} alt={listingTitle} />
               ) : (
                 <span className="gallery-placeholder">Twin Unity</span>
               )}
               <span className="gallery-overlay">
                 <strong>{listing.name}</strong>
+                {listingMeta ? <span>{listingMeta}</span> : null}
                 <small>{formatMoney(listing.price_cents)}</small>
               </span>
             </Link>

@@ -14,6 +14,7 @@ create table public.listings (
   status listing_status not null default 'draft',
   set_name text,
   card_number text,
+  rarity text,
   condition text,
   grade text,
   price_cents integer check (price_cents is null or price_cents >= 0),

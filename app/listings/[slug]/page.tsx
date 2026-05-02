@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { CheckoutButton } from "@/components/CheckoutButton";
-import { formatMoney } from "@/lib/format";
+import { formatListingTitle, formatMoney } from "@/lib/format";
 import { getListingBySlug } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +25,7 @@ export default async function ListingDetailPage({
   const canAddToCart = !isSold && listing.price_cents !== null;
   const canCheckout = !isSold && listing.price_cents !== null && listing.quantity > 0;
   const primaryImage = listing.image_urls[0];
+  const listingTitle = formatListingTitle(listing);
 
   return (
     <main className="section">
@@ -34,7 +35,7 @@ export default async function ListingDetailPage({
           <div className="listing-image">
             {primaryImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={primaryImage} alt={listing.name} />
+              <img src={primaryImage} alt={listingTitle} />
             ) : (
               <span>Twin Unity</span>
             )}
@@ -44,6 +45,32 @@ export default async function ListingDetailPage({
           <article>
             {isSold ? <p className="sold-label">Sold</p> : null}
             <h1>{listing.name}</h1>
+            <dl className="listing-detail-meta" aria-label="Listing details">
+              {listing.set_name ? (
+                <div>
+                  <dt>Set</dt>
+                  <dd>{listing.set_name}</dd>
+                </div>
+              ) : null}
+              {listing.card_number ? (
+                <div>
+                  <dt>Card Number</dt>
+                  <dd>{listing.card_number}</dd>
+                </div>
+              ) : null}
+              {listing.rarity ? (
+                <div>
+                  <dt>Rarity</dt>
+                  <dd>{listing.rarity}</dd>
+                </div>
+              ) : null}
+              {listing.grade ? (
+                <div>
+                  <dt>Grade</dt>
+                  <dd>{listing.grade}</dd>
+                </div>
+              ) : null}
+            </dl>
             <p className="price">{formatMoney(listing.price_cents)}</p>
             <p className="lead">{listing.description}</p>
 
@@ -65,7 +92,7 @@ export default async function ListingDetailPage({
                     item={{
                       id: listing.id,
                       slug: listing.slug,
-                      name: listing.name,
+                      name: listingTitle,
                       price_cents: listing.price_cents,
                       image_url: primaryImage ?? null
                     }}
@@ -85,8 +112,6 @@ export default async function ListingDetailPage({
                 Ask on Instagram
               </a>
             </div>
-
-            {listing.notes ? <p className="status-message">{listing.notes}</p> : null}
           </article>
         </div>
       </div>

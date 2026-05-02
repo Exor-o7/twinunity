@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { formatMoney, slugify } from "@/lib/format";
+import { formatListingTitle, formatMoney, slugify } from "@/lib/format";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type { Listing, ListingCategory, ListingInput, ListingIntent, ListingStatus } from "@/lib/types";
 
@@ -15,6 +15,7 @@ type FormState = {
   status: ListingStatus;
   set_name: string;
   card_number: string;
+  rarity: string;
   grade: string;
   price: string;
   quantity: string;
@@ -27,10 +28,11 @@ const emptyForm: FormState = {
   slug: "",
   name: "",
   category: "single",
-  intent: "buy",
+  intent: "sell",
   status: "draft",
   set_name: "",
   card_number: "",
+  rarity: "",
   grade: "",
   price: "",
   quantity: "1",
@@ -38,6 +40,12 @@ const emptyForm: FormState = {
   notes: "",
   image_urls: ""
 };
+
+const gradeOptions = Array.from({ length: 10 }, (_, index) => String(index + 1));
+
+function isValidGrade(grade: string) {
+  return gradeOptions.includes(grade);
+}
 
 function formFromListing(listing: Listing): FormState {
   return {
@@ -49,6 +57,7 @@ function formFromListing(listing: Listing): FormState {
     status: listing.status,
     set_name: listing.set_name ?? "",
     card_number: listing.card_number ?? "",
+    rarity: listing.rarity ?? "",
     grade: listing.grade ?? "",
     price:
       typeof listing.price_cents === "number"
@@ -77,8 +86,9 @@ function formToListingInput(form: FormState): ListingInput {
     status: form.status,
     set_name: toNullable(form.set_name),
     card_number: toNullable(form.card_number),
+    rarity: toNullable(form.rarity),
     condition: null,
-    grade: toNullable(form.grade),
+    grade: form.category === "graded" ? toNullable(form.grade) : null,
     price_cents: price ? Math.round(Number(price) * 100) : null,
     quantity: Number.parseInt(form.quantity, 10) || 0,
     description: toNullable(form.description),
@@ -90,6 +100,14 @@ function formToListingInput(form: FormState): ListingInput {
   };
 }
 
+async function parseJsonResponse<T>(response: Response, fallbackError: string) {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return { error: fallbackError } as T;
+  }
+}
+
 export function AdminDashboard() {
   const supabase = useMemo(() => createBrowserSupabaseClient(), []);
   const [session, setSession] = useState<Session | null>(null);
@@ -97,7 +115,7 @@ export function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [listings, setListings] = useState<Listing[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [message, setMessage] = useState("Loading admin session...");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -200,27 +218,36 @@ export function AdminDashboard() {
     setSession(null);
     setListings([]);
     setForm(emptyForm);
+    setImageFiles([]);
   }
 
-  async function uploadImage(currentForm: FormState) {
-    if (!imageFile || !supabase || !session) {
+  async function uploadImages(currentForm: FormState) {
+    if (imageFiles.length === 0 || !supabase || !session) {
       return currentForm;
     }
 
-    const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "-");
-    const path = `${session.user.id}/${Date.now()}-${safeName}`;
-    const { error: uploadError } = await supabase.storage
-      .from("listing-images")
-      .upload(path, imageFile, { upsert: false });
+    const uploadedUrls: string[] = [];
 
-    if (uploadError) {
-      throw uploadError;
+    for (const imageFile of imageFiles) {
+      const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+      const path = `${session.user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("listing-images")
+        .upload(path, imageFile, { upsert: false });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage
+        .from("listing-images")
+        .getPublicUrl(path);
+      uploadedUrls.push(data.publicUrl);
     }
 
-    const { data } = supabase.storage.from("listing-images").getPublicUrl(path);
     return {
       ...currentForm,
-      image_urls: [currentForm.image_urls, data.publicUrl]
+      image_urls: [currentForm.image_urls, ...uploadedUrls]
         .filter(Boolean)
         .join("\n")
     };
@@ -232,7 +259,11 @@ export function AdminDashboard() {
     setError(null);
 
     try {
-      const formWithImage = await uploadImage(form);
+      if (form.category === "graded" && !isValidGrade(form.grade)) {
+        throw new Error("Choose a grade from 1 to 10 for graded listings.");
+      }
+
+      const formWithImage = await uploadImages(form);
       const input = formToListingInput(formWithImage);
       const response = await apiFetch(
         form.id ? `/api/admin/listings/${form.id}` : "/api/admin/listings",
@@ -241,17 +272,17 @@ export function AdminDashboard() {
           body: JSON.stringify(input)
         }
       );
-      const payload = (await response.json()) as {
+      const payload = await parseJsonResponse<{
         listing?: Listing;
         error?: string;
-      };
+      }>(response, "Unable to save listing. Check the server logs.");
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to save listing.");
       }
 
       setForm(emptyForm);
-      setImageFile(null);
+      setImageFiles([]);
       setMessage(`Saved ${payload.listing?.name ?? "listing"}.`);
       await loadListings();
     } catch (saveError) {
@@ -279,6 +310,7 @@ export function AdminDashboard() {
 
     await loadListings();
     setForm(emptyForm);
+    setImageFiles([]);
   }
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -287,6 +319,10 @@ export function AdminDashboard() {
 
       if (key === "name" && !current.id) {
         next.slug = slugify(String(value));
+      }
+
+      if (key === "category" && value !== "graded") {
+        next.grade = "";
       }
 
       return next;
@@ -352,7 +388,7 @@ export function AdminDashboard() {
             type="button"
             onClick={() => {
               setForm(emptyForm);
-              setImageFile(null);
+              setImageFiles([]);
             }}
           >
             New Listing
@@ -360,40 +396,80 @@ export function AdminDashboard() {
         </div>
         <h2>Inventory</h2>
         <div className="table-list">
-          {listings.map((listing) => (
-            <article className="table-item" key={listing.id}>
-              <header>
-                <strong>{listing.name}</strong>
-                <span className="badge">{listing.status}</span>
-              </header>
-              <p>
-                {listing.category} | {listing.intent} |{" "}
-                {formatMoney(listing.price_cents)}
-              </p>
-              <div className="actions">
-                <button
-                  className="btn secondary"
-                  type="button"
-                  onClick={() => setForm(formFromListing(listing))}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn ghost"
-                  type="button"
-                  onClick={() => void deleteListing(listing.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </article>
-          ))}
+          {listings.map((listing) => {
+            const listingTitle = formatListingTitle(listing);
+
+            return (
+              <article className="table-item" key={listing.id}>
+                <header>
+                  <strong>{listingTitle}</strong>
+                  <span className="badge">{listing.status}</span>
+                </header>
+                <p>
+                  {listing.category} | {listing.intent} |{" "}
+                  {formatMoney(listing.price_cents)}
+                </p>
+                <div className="actions">
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    onClick={() => setForm(formFromListing(listing))}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn ghost"
+                    type="button"
+                    onClick={() => void deleteListing(listing.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
       <section className="panel">
         <h2>{form.id ? "Edit Listing" : "Create Listing"}</h2>
         <form className="form-grid" onSubmit={saveListing}>
+          <div className="grid two">
+            <div className="field">
+              <label htmlFor="category">Category</label>
+              <select
+                id="category"
+                value={form.category}
+                onChange={(event) =>
+                  updateField("category", event.target.value as ListingCategory)
+                }
+              >
+                <option value="single">Single</option>
+                <option value="graded">Graded</option>
+                <option value="sealed">Sealed</option>
+                <option value="collection">Collection</option>
+              </select>
+            </div>
+            {form.category === "graded" ? (
+              <div className="field">
+                <label htmlFor="grade">Grade</label>
+                <select
+                  id="grade"
+                  value={form.grade}
+                  onChange={(event) => updateField("grade", event.target.value)}
+                  required
+                >
+                  <option value="">Select grade</option>
+                  {gradeOptions.map((grade) => (
+                    <option key={grade} value={grade}>
+                      {grade}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+          </div>
+
           <div className="grid two">
             <div className="field">
               <label htmlFor="set_name">Set</label>
@@ -426,31 +502,17 @@ export function AdminDashboard() {
               />
             </div>
             <div className="field">
-              <label htmlFor="grade">Grade</label>
+              <label htmlFor="rarity">Rarity</label>
               <input
-                id="grade"
-                value={form.grade}
-                onChange={(event) => updateField("grade", event.target.value)}
+                id="rarity"
+                value={form.rarity}
+                onChange={(event) => updateField("rarity", event.target.value)}
+                placeholder="Holo Rare"
               />
             </div>
           </div>
 
           <div className="grid two">
-            <div className="field">
-              <label htmlFor="category">Category</label>
-              <select
-                id="category"
-                value={form.category}
-                onChange={(event) =>
-                  updateField("category", event.target.value as ListingCategory)
-                }
-              >
-                <option value="single">Single</option>
-                <option value="graded">Graded</option>
-                <option value="sealed">Sealed</option>
-                <option value="collection">Collection</option>
-              </select>
-            </div>
             <div className="field">
               <label htmlFor="intent">Intent</label>
               <select
@@ -465,9 +527,6 @@ export function AdminDashboard() {
                 <option value="trade">Trade</option>
               </select>
             </div>
-          </div>
-
-          <div className="grid two">
             <div className="field">
               <label htmlFor="status">Status</label>
               <select
@@ -483,6 +542,9 @@ export function AdminDashboard() {
                 <option value="archived">Archived</option>
               </select>
             </div>
+          </div>
+
+          <div className="grid two">
             <div className="field">
               <label htmlFor="quantity">Quantity</label>
               <input
@@ -519,15 +581,6 @@ export function AdminDashboard() {
           </div>
 
           <div className="field">
-            <label htmlFor="notes">Internal or public notes</label>
-            <textarea
-              id="notes"
-              value={form.notes}
-              onChange={(event) => updateField("notes", event.target.value)}
-            />
-          </div>
-
-          <div className="field">
             <label htmlFor="image_urls">Image URLs, one per line</label>
             <textarea
               id="image_urls"
@@ -542,7 +595,24 @@ export function AdminDashboard() {
               id="image_file"
               type="file"
               accept="image/*"
-              onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
+              multiple
+              onChange={(event) =>
+                setImageFiles(Array.from(event.target.files ?? []))
+              }
+            />
+            {imageFiles.length > 0 ? (
+              <p className="status-message">
+                {imageFiles.length} image{imageFiles.length === 1 ? "" : "s"} selected.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="field">
+            <label htmlFor="notes">Internal notes</label>
+            <textarea
+              id="notes"
+              value={form.notes}
+              onChange={(event) => updateField("notes", event.target.value)}
             />
           </div>
 
