@@ -2,9 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { formatListingTitle, formatMoney, slugify } from "@/lib/format";
+import {
+  formatListingTitle,
+  formatMoney,
+  formatSealedType,
+  slugify
+} from "@/lib/format";
 import { createBrowserSupabaseClient } from "@/lib/supabase";
-import type { Listing, ListingCategory, ListingInput, ListingIntent, ListingStatus } from "@/lib/types";
+import type {
+  Listing,
+  ListingCategory,
+  ListingInput,
+  ListingIntent,
+  ListingSealedType,
+  ListingStatus
+} from "@/lib/types";
 
 type FormState = {
   id?: string;
@@ -16,6 +28,7 @@ type FormState = {
   set_name: string;
   card_number: string;
   rarity: string;
+  sealed_type: ListingSealedType | "";
   grade: string;
   price: string;
   quantity: string;
@@ -33,6 +46,7 @@ const emptyForm: FormState = {
   set_name: "",
   card_number: "",
   rarity: "",
+  sealed_type: "",
   grade: "",
   price: "",
   quantity: "1",
@@ -42,9 +56,24 @@ const emptyForm: FormState = {
 };
 
 const gradeOptions = Array.from({ length: 10 }, (_, index) => String(index + 1));
+const sealedTypeOptions: ListingSealedType[] = [
+  "booster_pack",
+  "booster_bundle",
+  "elite_trainer_box"
+];
+const categoryLabels: Record<ListingCategory, string> = {
+  single: "Single",
+  graded: "Graded",
+  sealed: "Sealed",
+  collection: "Others"
+};
 
 function isValidGrade(grade: string) {
   return gradeOptions.includes(grade);
+}
+
+function isValidSealedType(sealedType: string) {
+  return sealedTypeOptions.includes(sealedType as ListingSealedType);
 }
 
 function formFromListing(listing: Listing): FormState {
@@ -58,6 +87,7 @@ function formFromListing(listing: Listing): FormState {
     set_name: listing.set_name ?? "",
     card_number: listing.card_number ?? "",
     rarity: listing.rarity ?? "",
+    sealed_type: listing.sealed_type ?? "",
     grade: listing.grade ?? "",
     price:
       typeof listing.price_cents === "number"
@@ -87,6 +117,10 @@ function formToListingInput(form: FormState): ListingInput {
     set_name: toNullable(form.set_name),
     card_number: toNullable(form.card_number),
     rarity: toNullable(form.rarity),
+    sealed_type:
+      form.category === "sealed"
+        ? (toNullable(form.sealed_type) as ListingSealedType | null)
+        : null,
     condition: null,
     grade: form.category === "graded" ? toNullable(form.grade) : null,
     price_cents: price ? Math.round(Number(price) * 100) : null,
@@ -263,6 +297,10 @@ export function AdminDashboard() {
         throw new Error("Choose a grade from 1 to 10 for graded listings.");
       }
 
+      if (form.category === "sealed" && !isValidSealedType(form.sealed_type)) {
+        throw new Error("Choose a sealed type for sealed listings.");
+      }
+
       const formWithImage = await uploadImages(form);
       const input = formToListingInput(formWithImage);
       const response = await apiFetch(
@@ -325,8 +363,17 @@ export function AdminDashboard() {
         next.grade = "";
       }
 
+      if (key === "category" && value !== "sealed") {
+        next.sealed_type = "";
+      }
+
       return next;
     });
+  }
+
+  function updateQuantity(delta: number) {
+    const currentQuantity = Number.parseInt(form.quantity, 10) || 0;
+    updateField("quantity", String(Math.max(0, currentQuantity + delta)));
   }
 
   if (!supabase) {
@@ -403,10 +450,12 @@ export function AdminDashboard() {
               <article className="table-item" key={listing.id}>
                 <header>
                   <strong>{listingTitle}</strong>
-                  <span className="badge">{listing.status}</span>
+                  {listing.status !== "archived" ? (
+                    <span className="badge">{listing.status}</span>
+                  ) : null}
                 </header>
                 <p>
-                  {listing.category} | {listing.intent} |{" "}
+                  {categoryLabels[listing.category]} | {listing.intent} |{" "}
                   {formatMoney(listing.price_cents)}
                 </p>
                 <div className="actions">
@@ -444,10 +493,10 @@ export function AdminDashboard() {
                   updateField("category", event.target.value as ListingCategory)
                 }
               >
-                <option value="single">Single</option>
-                <option value="graded">Graded</option>
-                <option value="sealed">Sealed</option>
-                <option value="collection">Collection</option>
+                <option value="single">{categoryLabels.single}</option>
+                <option value="graded">{categoryLabels.graded}</option>
+                <option value="sealed">{categoryLabels.sealed}</option>
+                <option value="collection">{categoryLabels.collection}</option>
               </select>
             </div>
             {form.category === "graded" ? (
@@ -463,6 +512,28 @@ export function AdminDashboard() {
                   {gradeOptions.map((grade) => (
                     <option key={grade} value={grade}>
                       {grade}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : form.category === "sealed" ? (
+              <div className="field">
+                <label htmlFor="sealed_type">Sealed Type</label>
+                <select
+                  id="sealed_type"
+                  value={form.sealed_type}
+                  onChange={(event) =>
+                    updateField(
+                      "sealed_type",
+                      event.target.value as ListingSealedType | ""
+                    )
+                  }
+                  required
+                >
+                  <option value="">Select sealed type</option>
+                  {sealedTypeOptions.map((sealedType) => (
+                    <option key={sealedType} value={sealedType}>
+                      {formatSealedType(sealedType)}
                     </option>
                   ))}
                 </select>
@@ -507,7 +578,6 @@ export function AdminDashboard() {
                 id="rarity"
                 value={form.rarity}
                 onChange={(event) => updateField("rarity", event.target.value)}
-                placeholder="Holo Rare"
               />
             </div>
           </div>
@@ -539,7 +609,6 @@ export function AdminDashboard() {
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
                 <option value="sold">Sold</option>
-                <option value="archived">Archived</option>
               </select>
             </div>
           </div>
@@ -547,28 +616,44 @@ export function AdminDashboard() {
           <div className="grid two">
             <div className="field">
               <label htmlFor="quantity">Quantity</label>
+              <span className="quantity-stepper admin-quantity-stepper">
+                <button
+                  aria-label="Decrease quantity"
+                  disabled={(Number.parseInt(form.quantity, 10) || 0) <= 0}
+                  type="button"
+                  onClick={() => updateQuantity(-1)}
+                >
+                  -
+                </button>
+                <input
+                  id="quantity"
+                  min="0"
+                  type="number"
+                  value={form.quantity}
+                  onChange={(event) => updateField("quantity", event.target.value)}
+                  required
+                />
+                <button
+                  aria-label="Increase quantity"
+                  type="button"
+                  onClick={() => updateQuantity(1)}
+                >
+                  +
+                </button>
+              </span>
+            </div>
+            <div className="field">
+              <label htmlFor="price">Price in dollars</label>
               <input
-                id="quantity"
+                id="price"
                 min="0"
+                step="0.01"
                 type="number"
-                value={form.quantity}
-                onChange={(event) => updateField("quantity", event.target.value)}
-                required
+                value={form.price}
+                onChange={(event) => updateField("price", event.target.value)}
+                placeholder="64.99"
               />
             </div>
-          </div>
-
-          <div className="field">
-            <label htmlFor="price">Price in dollars</label>
-            <input
-              id="price"
-              min="0"
-              step="0.01"
-              type="number"
-              value={form.price}
-              onChange={(event) => updateField("price", event.target.value)}
-              placeholder="64.99"
-            />
           </div>
 
           <div className="field">

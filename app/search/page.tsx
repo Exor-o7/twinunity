@@ -1,4 +1,5 @@
 import { ListingCard } from "@/components/ListingCard";
+import { formatSealedType } from "@/lib/format";
 import { getPublishedListings } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           listing.set_name,
           listing.card_number,
           listing.rarity,
+          formatSealedType(listing.sealed_type),
           listing.description
         ]
           .filter(Boolean)

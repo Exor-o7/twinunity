@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { formatListingTitle } from "@/lib/format";
+import { formatListingTitle, formatSealedType } from "@/lib/format";
 import { createStripeClient } from "@/lib/stripe";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import type { Listing } from "@/lib/types";
@@ -22,11 +22,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = (await request.json()) as { listingId?: string };
+  const body = (await request.json()) as { listingId?: string; quantity?: number };
 
   if (!body.listingId) {
     return NextResponse.json({ error: "Missing listing ID" }, { status: 400 });
   }
+
+  const quantity = Math.max(1, Math.floor(body.quantity ?? 1));
 
   const { data, error } = await supabase
     .from("listings")
@@ -43,10 +45,15 @@ export async function POST(request: NextRequest) {
   if (
     listing.status !== "published" ||
     listing.price_cents === null ||
-    listing.quantity < 1
+    listing.quantity < quantity
   ) {
     return NextResponse.json(
-      { error: "This listing is not available for checkout" },
+      {
+        error:
+          listing.quantity > 0
+            ? `Only ${listing.quantity} available. Update your cart quantity and try again.`
+            : "This listing is not available for checkout"
+      },
       { status: 400 }
     );
   }
@@ -60,11 +67,12 @@ export async function POST(request: NextRequest) {
     cancel_url: `${siteUrl}/listings/${listing.slug}?checkout=cancelled`,
     customer_creation: "if_required",
     metadata: {
-      listing_id: listing.id
+      listing_id: listing.id,
+      quantity: String(quantity)
     },
     line_items: [
       {
-        quantity: 1,
+        quantity,
         price_data: {
           currency: "usd",
           unit_amount: listing.price_cents,
@@ -75,6 +83,7 @@ export async function POST(request: NextRequest) {
                 listing.set_name,
                 listing.card_number,
                 listing.rarity,
+                formatSealedType(listing.sealed_type),
                 listing.condition
               ]
                 .filter(Boolean)
@@ -89,7 +98,7 @@ export async function POST(request: NextRequest) {
   const { error: orderError } = await supabase.from("orders").insert({
     listing_id: listing.id,
     stripe_checkout_session_id: session.id,
-    amount_total_cents: listing.price_cents,
+    amount_total_cents: listing.price_cents * quantity,
     currency: "usd",
     status: "pending"
   });

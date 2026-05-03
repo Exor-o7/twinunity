@@ -7,7 +7,7 @@ export default function EliteTrainerBoxesPage() {
     <ProductListingPage
       category="sealed"
       description="Find sealed Elite Trainer Boxes and ETB releases."
-      keywords={["elite trainer box", "etb"]}
+      sealedType="elite_trainer_box"
       title="Elite Trainer Boxes"
     />
   );

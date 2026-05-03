@@ -7,7 +7,7 @@ export default function BoosterPacksPage() {
     <ProductListingPage
       category="sealed"
       description="Shop sealed booster packs ready for collectors and players."
-      keywords={["booster pack", "pack"]}
+      sealedType="booster_pack"
       title="Booster Packs"
     />
   );

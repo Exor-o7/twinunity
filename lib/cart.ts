@@ -4,6 +4,7 @@ export type CartItem = {
   name: string;
   price_cents: number | null;
   image_url: string | null;
+  available_quantity?: number;
   quantity: number;
 };
 
@@ -39,18 +40,39 @@ export function writeCartItems(items: CartItem[]) {
   window.dispatchEvent(new Event(CART_UPDATED_EVENT));
 }
 
-export function addCartItem(item: Omit<CartItem, "quantity">) {
+export function addCartItem(item: Omit<CartItem, "quantity">, requestedQuantity = 1) {
   const items = readCartItems();
   const existingItem = items.find((cartItem) => cartItem.id === item.id);
+  const availableQuantity = item.available_quantity ?? Number.POSITIVE_INFINITY;
+  const safeRequestedQuantity = Math.max(1, Math.floor(requestedQuantity));
 
   if (existingItem) {
-    existingItem.quantity += 1;
+    const nextQuantity = Math.min(
+      existingItem.quantity + safeRequestedQuantity,
+      availableQuantity
+    );
+    const addedQuantity = nextQuantity - existingItem.quantity;
+    existingItem.quantity = nextQuantity;
+    existingItem.available_quantity = item.available_quantity;
     writeCartItems(items);
-    return existingItem.quantity;
+
+    return {
+      addedQuantity,
+      availableQuantity: item.available_quantity,
+      capped: addedQuantity < safeRequestedQuantity,
+      quantity: existingItem.quantity
+    };
   }
 
-  writeCartItems([...items, { ...item, quantity: 1 }]);
-  return 1;
+  const quantity = Math.min(safeRequestedQuantity, availableQuantity);
+  writeCartItems([...items, { ...item, quantity }]);
+
+  return {
+    addedQuantity: quantity,
+    availableQuantity: item.available_quantity,
+    capped: quantity < safeRequestedQuantity,
+    quantity
+  };
 }
 
 export function removeCartItem(id: string) {

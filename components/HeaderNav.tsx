@@ -7,8 +7,7 @@ import { CART_UPDATED_EVENT, getCartItemCount } from "@/lib/cart";
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/new-arrivals", label: "New Arrivals" },
-  { href: "/sold", label: "Recently Sold" }
+  { href: "/new-arrivals", label: "New Arrivals" }
 ];
 
 const navGroups = [
@@ -25,8 +24,8 @@ const navGroups = [
     label: "Sealed",
     links: [
       { href: "/booster-packs", label: "Booster Packs" },
-      { href: "/elite-trainer-boxes", label: "Elite Trainer Boxes" },
-      { href: "/booster-boxes", label: "Booster Boxes" }
+      { href: "/booster-bundles", label: "Booster Bundles" },
+      { href: "/elite-trainer-boxes", label: "Elite Trainer Boxes" }
     ]
   }
 ];
@@ -187,6 +186,16 @@ export function HeaderNav() {
               </li>
             );
           })}
+          <li>
+            <Link
+              aria-current={isActivePath(pathname, "/others") ? "page" : undefined}
+              className={isActivePath(pathname, "/others") ? "active" : ""}
+              href="/others"
+              onClick={closeMenu}
+            >
+              Others
+            </Link>
+          </li>
         </ul>
 
         <div className="nav-actions">

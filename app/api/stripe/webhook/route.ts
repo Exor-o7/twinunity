@@ -35,6 +35,10 @@ export async function POST(request: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const listingId = session.metadata?.listing_id;
+    const quantity = Math.max(
+      1,
+      Number.parseInt(session.metadata?.quantity ?? "1", 10) || 1
+    );
 
     if (!listingId) {
       return NextResponse.json({ received: true });
@@ -56,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (data) {
       const listing = data as Listing;
-      const nextQuantity = Math.max(0, listing.quantity - 1);
+      const nextQuantity = Math.max(0, listing.quantity - quantity);
 
       await supabase
         .from("listings")

@@ -15,6 +15,7 @@ import {
 
 export function CartView() {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [quantityMessages, setQuantityMessages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     function syncCart() {
@@ -41,10 +42,36 @@ export function CartView() {
   );
 
   function updateQuantity(id: string, quantity: number) {
+    const nextMessages = { ...quantityMessages };
     const nextItems = items
-      .map((item) => (item.id === id ? { ...item, quantity } : item))
+      .map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+
+        const requestedQuantity = Number.isFinite(quantity)
+          ? Math.max(0, Math.floor(quantity))
+          : 0;
+        const availableQuantity = item.available_quantity;
+        const nextQuantity =
+          availableQuantity === undefined
+            ? requestedQuantity
+            : Math.min(requestedQuantity, availableQuantity);
+
+        if (
+          availableQuantity !== undefined &&
+          requestedQuantity > availableQuantity
+        ) {
+          nextMessages[id] = `We only have ${availableQuantity}, so we added ${availableQuantity} to your cart.`;
+        } else {
+          delete nextMessages[id];
+        }
+
+        return { ...item, quantity: nextQuantity };
+      })
       .filter((item) => item.quantity > 0);
 
+    setQuantityMessages(nextMessages);
     setItems(nextItems);
     writeCartItems(nextItems);
   }
@@ -94,20 +121,50 @@ export function CartView() {
                 <h2>{item.name}</h2>
               </Link>
               <p className="price">{formatMoney(item.price_cents)}</p>
+              {item.available_quantity !== undefined ? (
+                <p className="status-message">
+                  {item.available_quantity} available
+                </p>
+              ) : null}
               <label>
                 Quantity
-                <input
-                  min="1"
-                  type="number"
-                  value={item.quantity}
-                  onChange={(event) =>
-                    updateQuantity(item.id, Number(event.target.value))
-                  }
-                />
+                <span className="quantity-stepper">
+                  <button
+                    aria-label="Decrease quantity"
+                    disabled={item.quantity <= 1}
+                    type="button"
+                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  >
+                    -
+                  </button>
+                  <input
+                    max={item.available_quantity}
+                    min="1"
+                    type="number"
+                    value={item.quantity}
+                    onChange={(event) =>
+                      updateQuantity(item.id, Number(event.target.value))
+                    }
+                  />
+                  <button
+                    aria-label="Increase quantity"
+                    disabled={
+                      item.available_quantity !== undefined &&
+                      item.quantity >= item.available_quantity
+                    }
+                    type="button"
+                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  >
+                    +
+                  </button>
+                </span>
               </label>
+              {quantityMessages[item.id] ? (
+                <p className="status-message">{quantityMessages[item.id]}</p>
+              ) : null}
             </div>
             <div className="cart-item-actions">
-              <CheckoutButton listingId={item.id} />
+              <CheckoutButton listingId={item.id} quantity={item.quantity} />
               <button
                 className="btn ghost"
                 type="button"

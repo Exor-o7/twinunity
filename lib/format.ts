@@ -1,4 +1,10 @@
-import type { Listing } from "@/lib/types";
+import type { Listing, ListingSealedType } from "@/lib/types";
+
+const sealedTypeLabels: Record<ListingSealedType, string> = {
+  booster_pack: "Booster Pack",
+  booster_bundle: "Booster Bundle",
+  elite_trainer_box: "Elite Trainer Box"
+};
 
 export function formatMoney(cents: number | null | undefined) {
   if (typeof cents !== "number") {
@@ -31,12 +37,16 @@ export function formatListingTitle(
 }
 
 export function formatListingMeta(
-  listing: Pick<Listing, "set_name" | "card_number" | "rarity" | "grade">,
+  listing: Pick<
+    Listing,
+    "set_name" | "card_number" | "rarity" | "sealed_type" | "grade"
+  >,
   options: { includeGrade?: boolean } = {}
 ) {
   const setName = listing.set_name?.trim();
   const cardNumber = listing.card_number?.trim();
   const rarity = listing.rarity?.trim();
+  const sealedType = formatSealedType(listing.sealed_type);
   const grade = listing.grade?.trim();
   const identity = [setName, cardNumber ? `#${cardNumber}` : null]
     .filter(Boolean)
@@ -44,8 +54,13 @@ export function formatListingMeta(
   const parts = [
     identity,
     rarity,
+    sealedType,
     options.includeGrade && grade ? `Grade ${grade}` : null
   ].filter(Boolean);
 
   return parts.join(" | ");
+}
+
+export function formatSealedType(sealedType: ListingSealedType | null | undefined) {
+  return sealedType ? sealedTypeLabels[sealedType] : null;
 }

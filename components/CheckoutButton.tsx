@@ -4,10 +4,15 @@ import { useState } from "react";
 
 type CheckoutButtonProps = {
   listingId: string;
+  quantity?: number;
   disabled?: boolean;
 };
 
-export function CheckoutButton({ listingId, disabled }: CheckoutButtonProps) {
+export function CheckoutButton({
+  listingId,
+  quantity = 1,
+  disabled
+}: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +25,7 @@ export function CheckoutButton({ listingId, disabled }: CheckoutButtonProps) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ listingId })
+      body: JSON.stringify({ listingId, quantity })
     });
 
     const payload = (await response.json()) as { url?: string; error?: string };

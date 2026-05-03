@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AddToCartButton } from "@/components/AddToCartButton";
-import { CheckoutButton } from "@/components/CheckoutButton";
-import { formatListingTitle, formatMoney } from "@/lib/format";
+import { PurchaseActions } from "@/components/PurchaseActions";
+import { formatListingTitle, formatMoney, formatSealedType } from "@/lib/format";
 import { getListingBySlug } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +21,7 @@ export default async function ListingDetailPage({
   }
 
   const isSold = listing.status === "sold";
-  const canAddToCart = !isSold && listing.price_cents !== null;
-  const canCheckout = !isSold && listing.price_cents !== null && listing.quantity > 0;
+  const canAddToCart = !isSold && listing.price_cents !== null && listing.quantity > 0;
   const primaryImage = listing.image_urls[0];
   const listingTitle = formatListingTitle(listing);
 
@@ -64,6 +62,12 @@ export default async function ListingDetailPage({
                   <dd>{listing.rarity}</dd>
                 </div>
               ) : null}
+              {listing.sealed_type ? (
+                <div>
+                  <dt>Sealed Type</dt>
+                  <dd>{formatSealedType(listing.sealed_type)}</dd>
+                </div>
+              ) : null}
               {listing.grade ? (
                 <div>
                   <dt>Grade</dt>
@@ -71,40 +75,38 @@ export default async function ListingDetailPage({
                 </div>
               ) : null}
             </dl>
-            <p className="price">{formatMoney(listing.price_cents)}</p>
+            <div className="price-row">
+              <p className="price">{formatMoney(listing.price_cents)}</p>
+              {!isSold && listing.quantity > 0 ? (
+                <span>{listing.quantity} available</span>
+              ) : null}
+            </div>
             <p className="lead">{listing.description}</p>
 
-            <div className="actions">
+            <div className="actions product-actions">
               {isSold ? (
                 <button className="btn secondary" disabled type="button">
                   Sold
                 </button>
               ) : canAddToCart ? (
-                <>
-                  {canCheckout ? (
-                    <CheckoutButton listingId={listing.id} />
-                  ) : (
-                    <a className="btn primary" href="mailto:hello@twinunitytcg.com">
-                      Contact Twin Unity
-                    </a>
-                  )}
-                  <AddToCartButton
-                    item={{
-                      id: listing.id,
-                      slug: listing.slug,
-                      name: listingTitle,
-                      price_cents: listing.price_cents,
-                      image_url: primaryImage ?? null
-                    }}
-                  />
-                </>
+                <PurchaseActions
+                  listingId={listing.id}
+                  item={{
+                    id: listing.id,
+                    slug: listing.slug,
+                    name: listingTitle,
+                    price_cents: listing.price_cents,
+                    image_url: primaryImage ?? null,
+                    available_quantity: listing.quantity
+                  }}
+                />
               ) : (
                 <a className="btn primary" href="mailto:hello@twinunitytcg.com">
                   Contact Twin Unity
                 </a>
               )}
               <a
-                className="btn secondary"
+                className="btn secondary instagram-action"
                 href="https://www.instagram.com/twin_unity/"
                 target="_blank"
                 rel="noopener noreferrer"

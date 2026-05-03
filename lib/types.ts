@@ -4,6 +4,11 @@ export type ListingIntent = "buy" | "sell" | "trade";
 
 export type ListingStatus = "draft" | "published" | "sold" | "archived";
 
+export type ListingSealedType =
+  | "booster_pack"
+  | "booster_bundle"
+  | "elite_trainer_box";
+
 export type Listing = {
   id: string;
   slug: string;
@@ -14,6 +19,7 @@ export type Listing = {
   set_name: string | null;
   card_number: string | null;
   rarity: string | null;
+  sealed_type: ListingSealedType | null;
   condition: string | null;
   grade: string | null;
   price_cents: number | null;

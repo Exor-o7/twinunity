@@ -10,17 +10,36 @@ type AddToCartButtonProps = {
     name: string;
     price_cents: number | null;
     image_url: string | null;
+    available_quantity: number;
   };
+  quantity?: number;
   disabled?: boolean;
 };
 
-export function AddToCartButton({ item, disabled }: AddToCartButtonProps) {
+export function AddToCartButton({
+  item,
+  quantity = 1,
+  disabled
+}: AddToCartButtonProps) {
   const [message, setMessage] = useState<string | null>(null);
 
   function addToCart() {
-    const quantity = addCartItem(item);
+    const result = addCartItem(item, quantity);
 
-    setMessage(quantity > 1 ? `Added again (${quantity} in cart).` : "Added to cart.");
+    if (result.capped && result.availableQuantity !== undefined) {
+      setMessage(
+        result.addedQuantity > 0
+          ? `We only have ${result.availableQuantity}, so we added ${result.addedQuantity} to your cart.`
+          : `We only have ${result.availableQuantity}, and that amount is already in your cart.`
+      );
+      return;
+    }
+
+    setMessage(
+      result.quantity > result.addedQuantity
+        ? `Added ${result.addedQuantity} more (${result.quantity} in cart).`
+        : `Added ${result.addedQuantity} to cart.`
+    );
   }
 
   return (

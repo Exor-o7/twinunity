@@ -1,23 +1,26 @@
 import { ListingCard } from "@/components/ListingCard";
 import { getPublishedListings } from "@/lib/supabase";
-import type { ListingCategory } from "@/lib/types";
+import type { ListingCategory, ListingSealedType } from "@/lib/types";
 
 type ProductListingPageProps = {
   title: string;
   description: string;
   category: ListingCategory;
   keywords?: string[];
+  sealedType?: ListingSealedType;
 };
 
 export async function ProductListingPage({
   title,
   description,
   category,
-  keywords
+  keywords,
+  sealedType
 }: ProductListingPageProps) {
   const listings = await getPublishedListings();
   const filteredListings = listings
     .filter((listing) => listing.category === category)
+    .filter((listing) => (sealedType ? listing.sealed_type === sealedType : true))
     .filter((listing) => {
       if (!keywords?.length) {
         return true;

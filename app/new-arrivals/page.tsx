@@ -3,16 +3,8 @@ import { getPublishedListings } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
-const NEW_ARRIVAL_DAYS = 7;
-
 export default async function NewArrivalsPage() {
   const listings = await getPublishedListings();
-  // New Arrivals is intentionally time-based; older products remain on category pages.
-  // eslint-disable-next-line react-hooks/purity
-  const cutoff = Date.now() - NEW_ARRIVAL_DAYS * 24 * 60 * 60 * 1000;
-  const newArrivals = listings.filter(
-    (listing) => new Date(listing.created_at).getTime() >= cutoff
-  );
 
   return (
     <main className="section">
@@ -21,14 +13,14 @@ export default async function NewArrivalsPage() {
           <div>
             <h1>New Arrivals</h1>
             <p className="lead">
-              Browse Twin Unity listings added within the last 7 days.
+              Browse the latest Twin Unity listings across every category.
             </p>
           </div>
         </div>
 
-        {newArrivals.length > 0 ? (
+        {listings.length > 0 ? (
           <div className="listing-grid">
-            {newArrivals.map((listing) => (
+            {listings.map((listing) => (
               <ListingCard key={listing.id} listing={listing} />
             ))}
           </div>

@@ -241,8 +241,27 @@ textarea {
   margin-left: auto;
 }
 
+.nav-secondary-link {
+  border: 1px solid color-mix(in oklab, var(--blue) 34%, var(--border));
+  border-radius: 999px;
+  background: rgb(39 169 255 / 5%);
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.48rem 0.68rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-secondary-link:hover,
+.nav-secondary-link.active {
+  border-color: color-mix(in oklab, var(--green) 55%, var(--blue));
+  color: var(--green);
+}
+
 .site-search {
   display: flex;
+  margin-left: 0.3rem;
   width: clamp(190px, 19vw, 275px);
 }
 
@@ -345,12 +364,37 @@ textarea {
   max-width: 860px;
 }
 
+.home-page {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 76% 10%, rgb(39 169 255 / 24%), transparent 32rem),
+    radial-gradient(circle at 22% 24%, rgb(103 232 59 / 15%), transparent 26rem),
+    radial-gradient(circle at 78% 74%, rgb(39 169 255 / 12%), transparent 34rem),
+    linear-gradient(180deg, rgb(3 18 30 / 72%) 0%, transparent 34rem),
+    linear-gradient(180deg, transparent 0%, rgb(1 7 13 / 72%) 100%);
+}
+
+.home-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 28%), transparent 30%, rgb(0 0 0 / 18%)),
+    radial-gradient(circle at 50% 0%, rgb(103 232 59 / 8%), transparent 42rem);
+}
+
+.home-page > * {
+  position: relative;
+  z-index: 1;
+}
+
 .home-hero {
-  min-height: calc(100vh - 164px);
   display: grid;
   place-items: center;
   overflow: hidden;
-  padding: 4rem 0;
+  padding: 3rem 0;
 }
 
 .home-hero-content {
@@ -411,6 +455,29 @@ textarea {
   min-width: 150px;
   padding: 0.95rem 1.9rem;
   font-size: 1.05rem;
+}
+
+.home-listing-section {
+  position: relative;
+  padding-top: 0.75rem;
+}
+
+.home-listing-section + .home-listing-section {
+  padding-top: 0;
+}
+
+.home-listing-section::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--blue) 38%, transparent),
+    color-mix(in oklab, var(--green) 24%, transparent),
+    transparent
+  );
 }
 
 .tag {
@@ -488,6 +555,137 @@ h2 {
   margin-top: 1.25rem;
 }
 
+.purchase-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: end;
+}
+
+.purchase-controls label {
+  display: grid;
+  gap: 0.28rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+  max-width: 8.5rem;
+  text-align: center;
+}
+
+.purchase-controls label span {
+  color: color-mix(in oklab, var(--muted) 78%, transparent);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.price-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.price-row .price {
+  margin: 0;
+}
+
+.price-row span {
+  border: 1px solid color-mix(in oklab, var(--green) 42%, transparent);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.25rem 0.6rem;
+}
+
+.purchase-controls input {
+  width: 100%;
+  border: 0;
+  appearance: textfield;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.25;
+  padding: 0;
+  text-align: center;
+}
+
+.purchase-controls input::-webkit-inner-spin-button,
+.purchase-controls input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.quantity-stepper {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(2.4rem, 1fr) 2.25rem;
+  align-items: center;
+  min-height: 3.05rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #03111d;
+  overflow: hidden;
+}
+
+.quantity-stepper button {
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 900;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    text-shadow 180ms ease;
+}
+
+.quantity-stepper button.is-active {
+  background: rgb(103 232 59 / 18%);
+  color: var(--green);
+  text-shadow: 0 0 12px rgb(103 232 59 / 45%);
+}
+
+.quantity-stepper button:first-child {
+  border-right: 1px solid rgb(39 169 255 / 12%);
+}
+
+.quantity-stepper button:last-child {
+  border-left: 1px solid rgb(39 169 255 / 12%);
+}
+
+.quantity-stepper button:disabled {
+  background: transparent;
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.35;
+}
+
+.quantity-stepper button:disabled:hover {
+  background: transparent;
+  color: var(--muted);
+}
+
+.purchase-controls .status-message {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.product-actions {
+  align-items: flex-start;
+}
+
+.product-actions .purchase-controls {
+  flex-basis: 100%;
+}
+
+.instagram-action {
+  margin-top: 0.15rem;
+}
+
 .section {
   padding: 3.2rem 0;
 }
@@ -517,6 +715,10 @@ h2 {
   display: grid;
   gap: 1.2rem;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+
+.home-preview-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .section-heading {
@@ -873,19 +1075,29 @@ h2 {
 .cart-item-details label {
   display: grid;
   gap: 0.35rem;
-  max-width: 7rem;
+  max-width: 8.5rem;
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 800;
+  text-align: center;
 }
 
 .cart-item-details input {
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: #03111d;
+  border: 0;
+  appearance: textfield;
+  background: transparent;
   color: var(--text);
-  padding: 0.45rem 0.55rem;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 0;
+  text-align: center;
+}
+
+.cart-item-details input::-webkit-inner-spin-button,
+.cart-item-details input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
 }
 
 .cart-item-actions {
@@ -1025,6 +1237,29 @@ h2 {
 .field input,
 .field select {
   height: 3.08rem;
+}
+
+.field input[type="number"] {
+  appearance: textfield;
+}
+
+.field input[type="number"]::-webkit-inner-spin-button,
+.field input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.field .quantity-stepper {
+  height: 3.08rem;
+}
+
+.field .quantity-stepper input {
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  text-align: center;
 }
 
 .field textarea {

@@ -9,6 +9,9 @@ export const listingSchema = z.object({
   set_name: z.string().nullable(),
   card_number: z.string().nullable(),
   rarity: z.string().nullable(),
+  sealed_type: z
+    .enum(["booster_pack", "booster_bundle", "elite_trainer_box"])
+    .nullable(),
   condition: z.string().nullable(),
   grade: z.string().nullable(),
   price_cents: z.number().int().nonnegative().nullable(),

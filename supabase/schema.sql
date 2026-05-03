@@ -15,6 +15,7 @@ create table public.listings (
   set_name text,
   card_number text,
   rarity text,
+  sealed_type text,
   condition text,
   grade text,
   price_cents integer check (price_cents is null or price_cents >= 0),
