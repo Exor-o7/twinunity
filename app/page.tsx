@@ -3,6 +3,8 @@ import Image from "next/image";
 import { ListingCard } from "@/components/ListingCard";
 import { getPublishedListings, getSoldListings } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 const RECENTLY_SOLD_DAYS = 7;
 const HOME_SECTION_LIMIT = 5;
 
