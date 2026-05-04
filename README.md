@@ -1,15 +1,48 @@
 # Twin Unity
 
-Twin Unity is a custom marketplace for buying, selling, and trading Pokemon cards. It uses a public storefront, a protected admin dashboard, Supabase for data/auth/storage, and Stripe Checkout for online purchases.
+Twin Unity is a custom marketplace for buying, selling, and trading Pokemon cards. The site combines a public storefront with a protected admin workflow for managing listings, inventory status, images, and purchase/trade intent.
 
-## Stack
+The core website is near launch. Remaining business decisions are the shared listing/contact email address and the final checkout provider. Stripe is currently one possible checkout option, but the production payment flow is not finalized.
+
+## Features
+
+- Public storefront for browsing Pokemon card listings by category, search, newest arrivals, and sold inventory.
+- Listing detail pages with image galleries, pricing, availability, and purchase actions.
+- Cart flow for collecting purchasable listings before checkout.
+- Protected admin dashboard for creating, editing, drafting, publishing, selling, and archiving listings.
+- Supabase-backed data, authentication, and storage.
+- Typed validation and shared listing models across the app.
+
+## Tech Stack
 
 - Next.js App Router
-- Supabase database, auth, and storage
-- Stripe Checkout and webhooks
+- React
 - TypeScript
+- Supabase database, auth, and storage
+- Zod validation
+- Checkout integration under evaluation
 
-## Local Development
+## Project Status
+
+Twin Unity is built as a portfolio-quality production app for a real Pokemon card marketplace. The storefront, admin listing workflow, inventory states, and core data model are in place. Before launch, the project still needs:
+
+- A shared email address for listing, trade, and customer communication.
+- A final checkout decision, such as Stripe, Shopify, or a manual/contact-based flow.
+
+## Admin Workflow
+
+Admins sign in at `/admin` with a Supabase Auth account whose email is included in `ADMIN_EMAILS`. Listings can be saved as `draft`, `published`, `sold`, or `archived`.
+
+Listing intent controls how inventory appears to customers:
+
+- `buy`: available for purchase when price and quantity are set.
+- `sell`: used for cards or collections Twin Unity is looking to buy.
+- `trade`: used for trade targets or tradeable inventory.
+
+<details>
+<summary>Development setup</summary>
+
+### Local Development
 
 1. Install dependencies:
 
@@ -45,9 +78,11 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 npm run dev
 ```
 
-## Stripe Webhook
+### Checkout Notes
 
-For local testing, forward Stripe events to:
+Checkout is intentionally still under evaluation. The repository currently includes Stripe-related code as one possible implementation path, but the final production provider may change before launch.
+
+For local Stripe testing, forward events to:
 
 ```bash
 stripe listen --forward-to localhost:3000/api/stripe/webhook
@@ -55,25 +90,19 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 Use the generated webhook signing secret as `STRIPE_WEBHOOK_SECRET`.
 
-The app listens for:
+The current Stripe webhook listens for:
 
 - `checkout.session.completed` to mark orders paid and reduce listing quantity.
 - `checkout.session.expired` to mark pending orders cancelled.
 
-## Admin Workflow
+### Deployment
 
-Go to `/admin`, sign in with the Supabase admin account, then create or edit listings. Listings can be saved as `draft`, `published`, `sold`, or `archived`.
+Deploy to Vercel and add the same environment variables in the Vercel project settings. Update `NEXT_PUBLIC_SITE_URL` to the production domain.
 
-Use `intent` to control behavior:
-
-- `buy`: shown as purchasable when price and quantity are available.
-- `sell`: used for cards or collections Twin Unity is looking to buy.
-- `trade`: used for trade targets or tradeable inventory.
-
-## Deployment
-
-Deploy to Vercel and add the same environment variables in the Vercel project settings. Update `NEXT_PUBLIC_SITE_URL` to the production domain and configure the Stripe webhook endpoint to point to:
+If Stripe is used for production checkout, configure the webhook endpoint to point to:
 
 ```text
 https://your-domain.com/api/stripe/webhook
 ```
+
+</details>
