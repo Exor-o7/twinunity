@@ -26,10 +26,11 @@ export default async function Home() {
           <div className="home-copy">
             <h1>Browse Our Inventory</h1>
             <p className="lead">
-              Fresh singles, slabs, and sealed Pokemon products from Twin Unity.
+              Fresh singles, graded cards, and sealed Pokemon products from Twin
+              Unity.
             </p>
             <div className="actions">
-              <Link className="btn primary" href="/single-cards">
+              <Link className="btn primary" href="/all">
                 Shop
               </Link>
             </div>

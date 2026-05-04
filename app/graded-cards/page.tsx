@@ -6,7 +6,7 @@ export default function GradedCardsPage() {
   return (
     <ProductListingPage
       category="graded"
-      description="Shop graded Pokemon cards and display-ready slabs."
+      description="Shop authenticated graded Pokemon cards."
       title="Graded Cards"
     />
   );

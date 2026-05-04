@@ -12,7 +12,7 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Twin Unity | Buy, Sell, Trade Pokemon Cards",
   description:
-    "Twin Unity is your trusted Pokemon card marketplace for buying, selling, and trading singles, slabs, sealed products, and collections."
+    "Twin Unity is your trusted Pokemon card marketplace for buying, selling, and trading singles, graded cards, sealed products, and collections."
 };
 
 export default function RootLayout({

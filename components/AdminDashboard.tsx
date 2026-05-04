@@ -149,11 +149,13 @@ export function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [listings, setListings] = useState<Listing[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [listingToDelete, setListingToDelete] = useState<Listing | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [message, setMessage] = useState("Loading admin session...");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredListings = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -281,6 +283,7 @@ export function AdminDashboard() {
     await supabase?.auth.signOut();
     setSession(null);
     setListings([]);
+    setListingToDelete(null);
     setForm(emptyForm);
     setImageFiles([]);
   }
@@ -360,25 +363,32 @@ export function AdminDashboard() {
     }
   }
 
-  async function deleteListing(id: string) {
-    if (!window.confirm("Delete this listing?")) {
+  async function deleteListing() {
+    if (!listingToDelete) {
       return;
     }
 
+    setIsDeleting(true);
     setError(null);
-    const response = await apiFetch(`/api/admin/listings/${id}`, {
-      method: "DELETE"
-    });
 
-    if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      setError(payload.error ?? "Unable to delete listing.");
-      return;
+    try {
+      const response = await apiFetch(`/api/admin/listings/${listingToDelete.id}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        setError(payload.error ?? "Unable to delete listing.");
+        return;
+      }
+
+      await loadListings();
+      setForm(emptyForm);
+      setImageFiles([]);
+      setListingToDelete(null);
+    } finally {
+      setIsDeleting(false);
     }
-
-    await loadListings();
-    setForm(emptyForm);
-    setImageFiles([]);
   }
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -514,7 +524,7 @@ export function AdminDashboard() {
                   <button
                     className="btn ghost"
                     type="button"
-                    onClick={() => void deleteListing(listing.id)}
+                    onClick={() => setListingToDelete(listing)}
                   >
                     Delete
                   </button>
@@ -527,6 +537,42 @@ export function AdminDashboard() {
           ) : null}
         </div>
       </section>
+
+      {listingToDelete ? (
+        <div
+          aria-labelledby="delete-listing-title"
+          aria-modal="true"
+          className="modal-backdrop"
+          role="dialog"
+        >
+          <div className="modal-card">
+            <h2 id="delete-listing-title">Delete this listing?</h2>
+            <p>
+              This will permanently remove{" "}
+              <strong>{formatListingTitle(listingToDelete)}</strong> from your
+              inventory.
+            </p>
+            <div className="actions">
+              <button
+                className="btn danger"
+                disabled={isDeleting}
+                type="button"
+                onClick={() => void deleteListing()}
+              >
+                {isDeleting ? "Deleting..." : "Delete Listing"}
+              </button>
+              <button
+                className="btn ghost"
+                disabled={isDeleting}
+                type="button"
+                onClick={() => setListingToDelete(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="panel">
         <h2>{form.id ? "Edit Listing" : "Create Listing"}</h2>
@@ -724,15 +770,21 @@ export function AdminDashboard() {
 
           <div className="field">
             <label htmlFor="image_file">Upload image</label>
-            <input
-              id="image_file"
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(event) =>
-                setImageFiles(Array.from(event.target.files ?? []))
-              }
-            />
+            <div className="file-upload">
+              <input
+                className="file-upload-input"
+                id="image_file"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) =>
+                  setImageFiles(Array.from(event.target.files ?? []))
+                }
+              />
+              <label className="btn secondary file-upload-button" htmlFor="image_file">
+                Browse Images
+              </label>
+            </div>
             {imageFiles.length > 0 ? (
               <p className="status-message">
                 {imageFiles.length} image{imageFiles.length === 1 ? "" : "s"} selected.

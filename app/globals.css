@@ -539,6 +539,12 @@ h2 {
   color: var(--text);
 }
 
+.btn.danger {
+  border: 1px solid color-mix(in oklab, var(--danger) 74%, white);
+  background: rgb(255 111 131 / 12%);
+  color: var(--text);
+}
+
 .btn:disabled {
   cursor: not-allowed;
   opacity: 0.58;
@@ -1199,6 +1205,40 @@ h2 {
   align-items: start;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(1 4 9 / 72%);
+  backdrop-filter: blur(10px);
+}
+
+.modal-card {
+  width: min(460px, 100%);
+  border: 1px solid color-mix(in oklab, var(--blue) 42%, var(--border));
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgb(103 232 59 / 12%), transparent 16rem),
+    color-mix(in oklab, var(--surface) 88%, black);
+  box-shadow: 0 28px 70px rgb(0 0 0 / 48%);
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.modal-card h2 {
+  margin: 0.15rem 0 0.8rem;
+}
+
+.modal-card p {
+  color: var(--muted);
+}
+
+.modal-card strong {
+  color: var(--text);
+}
+
 .form-grid {
   display: grid;
   gap: 0.8rem;
@@ -1265,6 +1305,24 @@ h2 {
 .field textarea {
   min-height: 110px;
   resize: vertical;
+}
+
+.file-upload-input {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.file-upload-button {
+  width: fit-content;
+}
+
+.file-upload-input:focus-visible + .file-upload-button {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
 }
 
 .status-message {
