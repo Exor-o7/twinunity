@@ -148,11 +148,41 @@ export function AdminDashboard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [listings, setListings] = useState<Listing[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [form, setForm] = useState<FormState>(emptyForm);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [message, setMessage] = useState("Loading admin session...");
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const filteredListings = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return listings;
+    }
+
+    return listings.filter((listing) => {
+      const searchableValues = [
+        formatListingTitle(listing),
+        listing.name,
+        listing.slug,
+        categoryLabels[listing.category],
+        listing.category,
+        listing.intent,
+        listing.status,
+        listing.set_name,
+        listing.card_number,
+        listing.rarity,
+        listing.sealed_type ? formatSealedType(listing.sealed_type) : null,
+        listing.grade ? `grade ${listing.grade}` : null
+      ];
+
+      return searchableValues.some((value) =>
+        value?.toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [listings, searchQuery]);
 
   const apiFetch = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -442,8 +472,23 @@ export function AdminDashboard() {
           </button>
         </div>
         <h2>Inventory</h2>
+        <div className="field admin-listing-search">
+          <label htmlFor="admin-listing-search">Search listings</label>
+          <input
+            id="admin-listing-search"
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Find by name, set, card number, status..."
+          />
+        </div>
+        {searchQuery.trim() ? (
+          <p className="status-message">
+            Showing {filteredListings.length} of {listings.length} listings.
+          </p>
+        ) : null}
         <div className="table-list">
-          {listings.map((listing) => {
+          {filteredListings.map((listing) => {
             const listingTitle = formatListingTitle(listing);
 
             return (
@@ -477,6 +522,9 @@ export function AdminDashboard() {
               </article>
             );
           })}
+          {filteredListings.length === 0 ? (
+            <p className="status-message">No listings match your search.</p>
+          ) : null}
         </div>
       </section>
 
