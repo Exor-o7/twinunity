@@ -1,7 +1,11 @@
+import type { ListingCategory, ListingSealedType } from "@/lib/types";
+
 export type CartItem = {
   id: string;
   slug: string;
   name: string;
+  category?: ListingCategory;
+  sealed_type?: ListingSealedType | null;
   price_cents: number | null;
   image_url: string | null;
   available_quantity?: number;

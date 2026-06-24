@@ -11,11 +11,13 @@ import {
 import { createBrowserSupabaseClient } from "@/lib/supabase";
 import type {
   Listing,
+  AdminStreamOrder,
   ListingCategory,
   ListingInput,
   ListingIntent,
   ListingSealedType,
-  ListingStatus
+  ListingStatus,
+  StreamStatus
 } from "@/lib/types";
 
 type FormState = {
@@ -66,6 +68,12 @@ const categoryLabels: Record<ListingCategory, string> = {
   graded: "Graded",
   sealed: "Sealed",
   collection: "Others"
+};
+const streamStatusLabels: Record<StreamStatus, string> = {
+  queued: "Queued",
+  opened: "Opened",
+  ready_to_ship: "Ready to ship",
+  fulfilled: "Fulfilled"
 };
 
 function isValidGrade(grade: string) {
@@ -134,6 +142,23 @@ function formToListingInput(form: FormState): ListingInput {
   };
 }
 
+function formatShippingAddress(address: Record<string, unknown> | null) {
+  if (!address) {
+    return "No shipping address";
+  }
+
+  const line1 = typeof address.line1 === "string" ? address.line1 : null;
+  const line2 = typeof address.line2 === "string" ? address.line2 : null;
+  const city = typeof address.city === "string" ? address.city : null;
+  const state = typeof address.state === "string" ? address.state : null;
+  const postalCode =
+    typeof address.postal_code === "string" ? address.postal_code : null;
+  const country = typeof address.country === "string" ? address.country : null;
+  const region = [city, state, postalCode].filter(Boolean).join(", ");
+
+  return [line1, line2, region, country].filter(Boolean).join(" | ");
+}
+
 async function parseJsonResponse<T>(response: Response, fallbackError: string) {
   try {
     return (await response.json()) as T;
@@ -148,6 +173,10 @@ export function AdminDashboard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [listings, setListings] = useState<Listing[]>([]);
+  const [streamOrders, setStreamOrders] = useState<AdminStreamOrder[]>([]);
+  const [streamOrderFilter, setStreamOrderFilter] = useState<StreamStatus | "all">(
+    "queued"
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [listingToDelete, setListingToDelete] = useState<Listing | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -185,6 +214,13 @@ export function AdminDashboard() {
       );
     });
   }, [listings, searchQuery]);
+  const filteredStreamOrders = useMemo(
+    () =>
+      streamOrderFilter === "all"
+        ? streamOrders
+        : streamOrders.filter((order) => order.stream_status === streamOrderFilter),
+    [streamOrderFilter, streamOrders]
+  );
 
   const apiFetch = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -224,6 +260,26 @@ export function AdminDashboard() {
     setListings(payload.listings ?? []);
   }, []);
 
+  const loadStreamOrdersWithToken = useCallback(async (accessToken: string) => {
+    setError(null);
+    const response = await fetch("/api/admin/orders", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+    const payload = (await response.json()) as {
+      orders?: AdminStreamOrder[];
+      error?: string;
+    };
+
+    if (!response.ok) {
+      setError(payload.error ?? "Unable to load stream queue.");
+      return;
+    }
+
+    setStreamOrders(payload.orders ?? []);
+  }, []);
+
   const loadListings = useCallback(async () => {
     if (!session) {
       return;
@@ -231,6 +287,14 @@ export function AdminDashboard() {
 
     await loadListingsWithToken(session.access_token);
   }, [loadListingsWithToken, session]);
+
+  const loadStreamOrders = useCallback(async () => {
+    if (!session) {
+      return;
+    }
+
+    await loadStreamOrdersWithToken(session.access_token);
+  }, [loadStreamOrdersWithToken, session]);
 
   useEffect(() => {
     if (!supabase) {
@@ -242,6 +306,7 @@ export function AdminDashboard() {
       setMessage(data.session ? "Signed in." : "Sign in to manage inventory.");
       if (data.session) {
         void loadListingsWithToken(data.session.access_token);
+        void loadStreamOrdersWithToken(data.session.access_token);
       }
     });
 
@@ -249,13 +314,14 @@ export function AdminDashboard() {
       setSession(nextSession);
       if (nextSession) {
         void loadListingsWithToken(nextSession.access_token);
+        void loadStreamOrdersWithToken(nextSession.access_token);
       }
     });
 
     return () => {
       data.subscription.unsubscribe();
     };
-  }, [loadListingsWithToken, supabase]);
+  }, [loadListingsWithToken, loadStreamOrdersWithToken, supabase]);
 
   async function signIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -283,6 +349,7 @@ export function AdminDashboard() {
     await supabase?.auth.signOut();
     setSession(null);
     setListings([]);
+    setStreamOrders([]);
     setListingToDelete(null);
     setForm(emptyForm);
     setImageFiles([]);
@@ -388,6 +455,28 @@ export function AdminDashboard() {
       setListingToDelete(null);
     } finally {
       setIsDeleting(false);
+    }
+  }
+
+  async function updateStreamStatus(orderId: string, streamStatus: StreamStatus) {
+    setError(null);
+
+    try {
+      const response = await apiFetch("/api/admin/orders", {
+        method: "PATCH",
+        body: JSON.stringify({ id: orderId, stream_status: streamStatus })
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Unable to update stream order.");
+      }
+
+      await loadStreamOrders();
+    } catch (streamError) {
+      setError(
+        streamError instanceof Error ? streamError.message : "Stream update failed."
+      );
     }
   }
 
@@ -535,6 +624,85 @@ export function AdminDashboard() {
           })}
           {filteredListings.length === 0 ? (
             <p className="status-message">No listings match your search.</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Stream Queue</h2>
+        <div className="field admin-listing-search">
+          <label htmlFor="stream-order-filter">Filter stream orders</label>
+          <select
+            id="stream-order-filter"
+            value={streamOrderFilter}
+            onChange={(event) =>
+              setStreamOrderFilter(event.target.value as StreamStatus | "all")
+            }
+          >
+            <option value="queued">Queued</option>
+            <option value="opened">Opened</option>
+            <option value="ready_to_ship">Ready to ship</option>
+            <option value="fulfilled">Fulfilled</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+        <div className="table-list">
+          {filteredStreamOrders.map((order) => {
+            const listingTitle = order.listing
+              ? formatListingTitle(order.listing)
+              : "Unknown listing";
+            const streamStatus: StreamStatus = order.stream_status ?? "queued";
+
+            return (
+              <article className="table-item" key={order.id}>
+                <header>
+                  <strong>
+                    #{order.stream_queue_number ?? "-"} {order.stream_customer_name}
+                  </strong>
+                  <span className="badge">{streamStatusLabels[streamStatus]}</span>
+                </header>
+                <p>
+                  {listingTitle} | Qty {order.quantity} |{" "}
+                  {formatMoney(order.amount_total_cents)}
+                </p>
+                <p className="status-message">
+                  Buyer: {order.buyer_email ?? "No email"} | Ship to:{" "}
+                  {order.shipping_name ?? "No name"}
+                </p>
+                <p className="status-message">
+                  {formatShippingAddress(order.shipping_address)}
+                </p>
+                <div className="actions">
+                  <button
+                    className="btn secondary"
+                    disabled={streamStatus === "opened"}
+                    type="button"
+                    onClick={() => void updateStreamStatus(order.id, "opened")}
+                  >
+                    Mark Opened
+                  </button>
+                  <button
+                    className="btn secondary"
+                    disabled={streamStatus === "ready_to_ship"}
+                    type="button"
+                    onClick={() => void updateStreamStatus(order.id, "ready_to_ship")}
+                  >
+                    Ready to Ship
+                  </button>
+                  <button
+                    className="btn ghost"
+                    disabled={streamStatus === "fulfilled"}
+                    type="button"
+                    onClick={() => void updateStreamStatus(order.id, "fulfilled")}
+                  >
+                    Fulfilled
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+          {filteredStreamOrders.length === 0 ? (
+            <p className="status-message">No stream orders match this filter.</p>
           ) : null}
         </div>
       </section>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { formatMoney } from "@/lib/format";
+import { cleanLiveOpeningName, requiresLiveOpening } from "@/lib/live-opening";
 import {
   CART_UPDATED_EVENT,
   type CartItem,
@@ -16,6 +17,9 @@ import {
 export function CartView() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [quantityMessages, setQuantityMessages] = useState<Record<string, string>>({});
+  const [streamCustomerNames, setStreamCustomerNames] = useState<Record<string, string>>(
+    {}
+  );
 
   useEffect(() => {
     function syncCart() {
@@ -106,75 +110,106 @@ export function CartView() {
   return (
     <div className="cart-layout">
       <section className="cart-items" aria-label="Cart items">
-        {items.map((item) => (
-          <article className="cart-item" key={item.id}>
-            <Link className="cart-item-image" href={`/listings/${item.slug}`}>
-              {item.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.image_url} alt={item.name} />
-              ) : (
-                <span>Twin Unity</span>
-              )}
-            </Link>
-            <div className="cart-item-details">
-              <Link href={`/listings/${item.slug}`}>
-                <h2>{item.name}</h2>
+        {items.map((item) => {
+          const needsLiveOpening = requiresLiveOpening({
+            category: item.category ?? "single",
+            sealed_type: item.sealed_type ?? null
+          });
+          const cleanCustomerName = cleanLiveOpeningName(streamCustomerNames[item.id]);
+
+          return (
+            <article className="cart-item" key={item.id}>
+              <Link className="cart-item-image" href={`/listings/${item.slug}`}>
+                {item.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.image_url} alt={item.name} />
+                ) : (
+                  <span>Twin Unity</span>
+                )}
               </Link>
-              <p className="price">{formatMoney(item.price_cents)}</p>
-              {item.available_quantity !== undefined ? (
-                <p className="status-message">
-                  {item.available_quantity} available
-                </p>
-              ) : null}
-              <label>
-                Quantity
-                <span className="quantity-stepper">
-                  <button
-                    aria-label="Decrease quantity"
-                    disabled={item.quantity <= 1}
-                    type="button"
-                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                  >
-                    -
-                  </button>
-                  <input
-                    max={item.available_quantity}
-                    min="1"
-                    type="number"
-                    value={item.quantity}
-                    onChange={(event) =>
-                      updateQuantity(item.id, Number(event.target.value))
-                    }
-                  />
-                  <button
-                    aria-label="Increase quantity"
-                    disabled={
-                      item.available_quantity !== undefined &&
-                      item.quantity >= item.available_quantity
-                    }
-                    type="button"
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                  >
-                    +
-                  </button>
-                </span>
-              </label>
-              {quantityMessages[item.id] ? (
-                <p className="status-message">{quantityMessages[item.id]}</p>
-              ) : null}
-            </div>
-            <div className="cart-item-actions">
-              <CheckoutButton listingId={item.id} quantity={item.quantity} />
-              <button
-                className="btn ghost"
-                type="button"
-                onClick={() => removeItem(item.id)}
-              >
-                Remove
-              </button>
-            </div>
-          </article>
-        ))}
+              <div className="cart-item-details">
+                <Link href={`/listings/${item.slug}`}>
+                  <h2>{item.name}</h2>
+                </Link>
+                <p className="price">{formatMoney(item.price_cents)}</p>
+                {item.available_quantity !== undefined ? (
+                  <p className="status-message">
+                    {item.available_quantity} available
+                  </p>
+                ) : null}
+                <label>
+                  Quantity
+                  <span className="quantity-stepper">
+                    <button
+                      aria-label="Decrease quantity"
+                      disabled={item.quantity <= 1}
+                      type="button"
+                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                    >
+                      -
+                    </button>
+                    <input
+                      max={item.available_quantity}
+                      min="1"
+                      type="number"
+                      value={item.quantity}
+                      onChange={(event) =>
+                        updateQuantity(item.id, Number(event.target.value))
+                      }
+                    />
+                    <button
+                      aria-label="Increase quantity"
+                      disabled={
+                        item.available_quantity !== undefined &&
+                        item.quantity >= item.available_quantity
+                      }
+                      type="button"
+                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    >
+                      +
+                    </button>
+                  </span>
+                </label>
+                {quantityMessages[item.id] ? (
+                  <p className="status-message">{quantityMessages[item.id]}</p>
+                ) : null}
+                {needsLiveOpening ? (
+                  <label className="cart-live-opening-field">
+                    Name for live opening
+                    <input
+                      maxLength={80}
+                      placeholder="Alias, username, or preferred name"
+                      type="text"
+                      value={streamCustomerNames[item.id] ?? ""}
+                      onChange={(event) =>
+                        setStreamCustomerNames((current) => ({
+                          ...current,
+                          [item.id]: event.target.value
+                        }))
+                      }
+                    />
+                    <span>This is what the owner will call during the stream.</span>
+                  </label>
+                ) : null}
+              </div>
+              <div className="cart-item-actions">
+                <CheckoutButton
+                  disabled={needsLiveOpening && !cleanCustomerName}
+                  listingId={item.id}
+                  quantity={item.quantity}
+                  streamCustomerName={cleanCustomerName}
+                />
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => removeItem(item.id)}
+                >
+                  Remove
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </section>
 
       <aside className="panel cart-summary">

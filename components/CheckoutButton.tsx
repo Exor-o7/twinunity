@@ -5,12 +5,14 @@ import { useState } from "react";
 type CheckoutButtonProps = {
   listingId: string;
   quantity?: number;
+  streamCustomerName?: string;
   disabled?: boolean;
 };
 
 export function CheckoutButton({
   listingId,
   quantity = 1,
+  streamCustomerName,
   disabled
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +27,7 @@ export function CheckoutButton({
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ listingId, quantity })
+      body: JSON.stringify({ listingId, quantity, streamCustomerName })
     });
 
     const payload = (await response.json()) as { url?: string; error?: string };

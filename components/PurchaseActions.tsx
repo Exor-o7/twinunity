@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { AddToCartButton } from "@/components/AddToCartButton";
 import { CheckoutButton } from "@/components/CheckoutButton";
+import { cleanLiveOpeningName, requiresLiveOpening } from "@/lib/live-opening";
+import type { ListingCategory, ListingSealedType } from "@/lib/types";
 
 type PurchaseActionsProps = {
   listingId: string;
@@ -10,6 +12,8 @@ type PurchaseActionsProps = {
     id: string;
     slug: string;
     name: string;
+    category: ListingCategory;
+    sealed_type: ListingSealedType | null;
     price_cents: number | null;
     image_url: string | null;
     available_quantity: number;
@@ -18,10 +22,13 @@ type PurchaseActionsProps = {
 
 export function PurchaseActions({ listingId, item }: PurchaseActionsProps) {
   const [quantity, setQuantity] = useState(1);
+  const [streamCustomerName, setStreamCustomerName] = useState("");
   const [activeStep, setActiveStep] = useState<"decrease" | "increase" | null>(
     null
   );
   const availableQuantity = Math.max(1, item.available_quantity);
+  const needsLiveOpening = requiresLiveOpening(item);
+  const cleanCustomerName = cleanLiveOpeningName(streamCustomerName);
 
   function updateQuantity(nextQuantity: number) {
     setQuantity(Math.min(Math.max(1, nextQuantity), availableQuantity));
@@ -73,7 +80,25 @@ export function PurchaseActions({ listingId, item }: PurchaseActionsProps) {
           </button>
         </span>
       </label>
-      <CheckoutButton listingId={listingId} quantity={quantity} />
+      {needsLiveOpening ? (
+        <label className="live-opening-field">
+          Name for live opening
+          <input
+            maxLength={80}
+            placeholder="Alias, username, or preferred name"
+            type="text"
+            value={streamCustomerName}
+            onChange={(event) => setStreamCustomerName(event.target.value)}
+          />
+          <span>This is what the owner will call during the stream.</span>
+        </label>
+      ) : null}
+      <CheckoutButton
+        disabled={needsLiveOpening && !cleanCustomerName}
+        listingId={listingId}
+        quantity={quantity}
+        streamCustomerName={cleanCustomerName}
+      />
       <AddToCartButton item={item} quantity={quantity} />
     </div>
   );

@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { addCartItem } from "@/lib/cart";
+import type { ListingCategory, ListingSealedType } from "@/lib/types";
 
 type AddToCartButtonProps = {
   item: {
     id: string;
     slug: string;
     name: string;
+    category?: ListingCategory;
+    sealed_type?: ListingSealedType | null;
     price_cents: number | null;
     image_url: string | null;
     available_quantity: number;

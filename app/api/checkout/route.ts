@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { formatListingTitle, formatSealedType } from "@/lib/format";
+import { cleanLiveOpeningName, requiresLiveOpening } from "@/lib/live-opening";
 import { createStripeClient } from "@/lib/stripe";
 import { createSupabaseAdminClient } from "@/lib/supabase";
 import type { Listing } from "@/lib/types";
@@ -22,7 +23,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = (await request.json()) as { listingId?: string; quantity?: number };
+  const body = (await request.json()) as {
+    listingId?: string;
+    quantity?: number;
+    streamCustomerName?: string;
+  };
 
   if (!body.listingId) {
     return NextResponse.json({ error: "Missing listing ID" }, { status: 400 });
@@ -41,6 +46,8 @@ export async function POST(request: NextRequest) {
   }
 
   const listing = data as Listing;
+  const streamOpenRequired = requiresLiveOpening(listing);
+  const streamCustomerName = cleanLiveOpeningName(body.streamCustomerName);
 
   if (
     listing.status !== "published" ||
@@ -58,6 +65,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (streamOpenRequired && !streamCustomerName) {
+    return NextResponse.json(
+      { error: "Enter a name or alias for the live opening." },
+      { status: 400 }
+    );
+  }
+
   const listingTitle = formatListingTitle(listing);
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
@@ -66,9 +80,14 @@ export async function POST(request: NextRequest) {
     success_url: `${siteUrl}/listings/${listing.slug}?checkout=success`,
     cancel_url: `${siteUrl}/listings/${listing.slug}?checkout=cancelled`,
     customer_creation: "if_required",
+    shipping_address_collection: {
+      allowed_countries: ["US"]
+    },
     metadata: {
       listing_id: listing.id,
-      quantity: String(quantity)
+      quantity: String(quantity),
+      stream_open_required: String(streamOpenRequired),
+      stream_customer_name: streamCustomerName
     },
     line_items: [
       {
@@ -98,8 +117,11 @@ export async function POST(request: NextRequest) {
   const { error: orderError } = await supabase.from("orders").insert({
     listing_id: listing.id,
     stripe_checkout_session_id: session.id,
+    quantity,
     amount_total_cents: listing.price_cents * quantity,
     currency: "usd",
+    stream_open_required: streamOpenRequired,
+    stream_customer_name: streamOpenRequired ? streamCustomerName : null,
     status: "pending"
   });
 

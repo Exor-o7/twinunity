@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import Stripe from "stripe";
 import { createStripeClient } from "@/lib/stripe";
 import { createSupabaseAdminClient } from "@/lib/supabase";
-import type { Listing } from "@/lib/types";
+import type { Listing, Order } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   const stripe = createStripeClient();
@@ -44,11 +44,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    const { data: orderData } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("stripe_checkout_session_id", session.id)
+      .single();
+
+    if (!orderData) {
+      return NextResponse.json({ received: true });
+    }
+
+    const order = orderData as Order;
+
+    if (order.status === "paid") {
+      return NextResponse.json({ received: true });
+    }
+
+    let streamQueueNumber = order.stream_queue_number;
+
+    if (order.stream_open_required && streamQueueNumber === null) {
+      const { data: nextQueueNumber } = await supabase.rpc(
+        "next_stream_queue_number",
+        { counter_id: "global" }
+      );
+
+      if (typeof nextQueueNumber === "number") {
+        streamQueueNumber = nextQueueNumber;
+      }
+    }
+
     await supabase
       .from("orders")
       .update({
         status: "paid",
-        buyer_email: session.customer_details?.email ?? null
+        buyer_email: session.customer_details?.email ?? null,
+        quantity,
+        amount_total_cents: session.amount_total ?? order.amount_total_cents,
+        currency: session.currency ?? order.currency,
+        paid_at: new Date().toISOString(),
+        shipping_name: session.customer_details?.name ?? null,
+        shipping_address: session.customer_details?.address ?? null,
+        shipping_amount_cents: session.total_details?.amount_shipping ?? null,
+        stream_queue_number: streamQueueNumber,
+        stream_status: order.stream_open_required ? "queued" : null
       })
       .eq("stripe_checkout_session_id", session.id);
 

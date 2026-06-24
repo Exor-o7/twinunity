@@ -584,6 +584,12 @@ h2 {
   font-weight: 700;
 }
 
+.purchase-controls .live-opening-field {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+  text-align: left;
+}
+
 .price-row {
   display: flex;
   flex-wrap: wrap;
@@ -615,6 +621,15 @@ h2 {
   line-height: 1.25;
   padding: 0;
   text-align: center;
+}
+
+.purchase-controls .live-opening-field input,
+.cart-live-opening-field input {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #03111d;
+  padding: 0.72rem 0.8rem;
+  text-align: left;
 }
 
 .purchase-controls input::-webkit-inner-spin-button,
@@ -1088,6 +1103,16 @@ h2 {
   text-align: center;
 }
 
+.cart-item-details .cart-live-opening-field {
+  max-width: 24rem;
+  text-align: left;
+}
+
+.cart-live-opening-field span {
+  color: color-mix(in oklab, var(--muted) 78%, transparent);
+  font-size: 0.72rem;
+}
+
 .cart-item-details input {
   width: 100%;
   border: 0;
@@ -1098,6 +1123,14 @@ h2 {
   font-weight: 800;
   padding: 0;
   text-align: center;
+}
+
+.cart-item-details .cart-live-opening-field input {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #03111d;
+  padding: 0.72rem 0.8rem;
+  text-align: left;
 }
 
 .cart-item-details input::-webkit-inner-spin-button,

@@ -95,6 +95,8 @@ export default async function ListingDetailPage({
                     id: listing.id,
                     slug: listing.slug,
                     name: listingTitle,
+                    category: listing.category,
+                    sealed_type: listing.sealed_type,
                     price_cents: listing.price_cents,
                     image_url: primaryImage ?? null,
                     available_quantity: listing.quantity
